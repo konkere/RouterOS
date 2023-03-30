@@ -18,7 +18,7 @@
 :local count 0
 
 :if ([:len $LastAlertTime] = 0) do={
-  :set NewLogs true
+    :set NewLogs true
 }
 
 if ( [:len $GMToffset] != 8 ) do={
@@ -28,7 +28,7 @@ if ( [:len $GMToffset] != 8 ) do={
 }
 
 :if ([:len [/system scheduler find name="$SchedulerName"]] = 0) do={
-  /log warning "$SchedulerName does not exist, create scheduler first"
+    /log warning "$SchedulerName does not exist, create scheduler first"
 }
 
 # Messages loop
@@ -59,7 +59,7 @@ if ( [:len $GMToffset] != 8 ) do={
                 :set MessageTime ($YesterdayDate." ".$MessageTime)
             }
         } else={
-            # Log date jan/01 00:00:00 for yesterday and today (00-02 hours)
+            # Log date jan/01 00:00:00 for yesterday and today (from 00 to GMToffset hours)
             :if ([:len $MessageTime] = 15 ) do={
                 :set MessageTime ([:pick $MessageTime 0 6]."/".[:pick [/system clock get date] 7 11]." ".[:pick $MessageTime 7 15])
             }
@@ -87,7 +87,7 @@ if ( [:len $GMToffset] != 8 ) do={
 
 
 if ([:len $output] > 0) do={
-  /system scheduler set [find name="$SchedulerName"] comment=$MessageTime
-  /tool fetch url="https://api.telegram.org/bot$TlgrmBotID/sendmessage?chat_id=$TlgrmChatIDlog&text=%E2%9D%97Alert%E2%9D%97%0A%0A$output" keep-result=no;
-  /log info "$SchedulerName - New logs found, send to Telegram"
+    /system scheduler set [find name="$SchedulerName"] comment=$MessageTime
+    /tool fetch url="https://api.telegram.org/bot$TlgrmBotID/sendmessage?chat_id=$TlgrmChatIDlog&text=%E2%9D%97Alert%E2%9D%97%0A%0A$output" keep-result=no;
+    /log info "$SchedulerName - New logs found, send to Telegram"
 }
