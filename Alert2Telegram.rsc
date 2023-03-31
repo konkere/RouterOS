@@ -47,7 +47,7 @@ if ( [:len $GMToffset] != 8 ) do={
 
         # Log date 00:00:00
         :if ([:len $MessageTime] = 8) do={
-            if ($CurrentHour > $GMToffset) do={
+            if ($CurrentHour >= $GMToffset) do={
                 #######################
                 # Current date format #
                 #######################
