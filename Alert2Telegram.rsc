@@ -5,6 +5,7 @@
 :global TlgrmBotID
 :global TlgrmChatIDlog
 :local SchedulerName "Alert2Telegram"
+:local CurrentDate [/system clock get date]
 :local CurrentHour [:pick [/system clock get time] 0 2]
 :local GMToffset [:totime [/system clock get gmt-offset ]]
 :local YesterdayDate [/system scheduler get [find name="YesterdayDate"] comment]
@@ -16,6 +17,7 @@
 :local output
 :local NewLogs false
 :local count 0
+
 
 :if ([:len $LastAlertTime] = 0) do={
     :set NewLogs true
@@ -85,6 +87,10 @@ if ( [:len $GMToffset] != 8 ) do={
     :set count ($count + 1)
 }
 
+# Update var YesterdayDate in scheduler's comment (if YesterdayDate not used at current time)
+if (($CurrentHour >= $GMToffset) && ($YesterdayDate != $CurrentDate)) do={
+    /system scheduler set [find name="YesterdayDate"] comment=$CurrentDate
+}
 
 if ([:len $output] > 0) do={
     /system scheduler set [find name="$SchedulerName"] comment=$MessageTime
