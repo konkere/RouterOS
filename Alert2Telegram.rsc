@@ -15,10 +15,6 @@
 # jan/20/1970 00:00:00 to 00:00:00 20/01/1970, set false for default
 :local ConvertDateTime true
 :local MessageDateTime
-:local mMonth
-:local mDate
-:local mYear
-:local mTime
 :local message
 :local output
 :local NewLogs false
