@@ -12,11 +12,33 @@
 :local Messages [:toarray [/log find topics~"warning" || topics~"critical" || topics~"error" || topics~"firewall"]]
 :local MessagesIgnore {"First ignore";"Second ignore"}
 :local LastAlertTime [/system scheduler get [find name="$SchedulerName"] comment]
-:local MessageTime
+# jan/20/1970 00:00:00 to 00:00:00 20/01/1970, set false for default
+:local ConvertDateTime true
+:local MessageDateTime
+:local mMonth
+:local mDate
+:local mYear
+:local mTime
 :local message
 :local output
 :local NewLogs false
 :local count 0
+
+
+# Convert jan/20/1970 00:00:00 to 00:00:00 20.01.1970
+:local DefConvertTime do={
+    if ($convertDT = true) do={
+        :local arrayMonths {jan="01";feb="02";mar="03";apr="04";may="05";jun="06";jul="07";aug="08";sep="09";oct="10";nov="11";dec="12"}
+        :local mDate [:pick $MessageDT 4 6]
+        :local mYear [:pick $MessageDT 7 11]
+        :local mTime [:pick $MessageDT 12 20]
+        :local mMonth ($arrayMonths->[:pick $MessageDT 0 3])
+        :local MessageDT "$mTime $mDate.$mMonth.$mYear"
+        :return $MessageDT
+    } else={
+        :return $MessageDT
+    }
+}
 
 
 :if ([:len $LastAlertTime] = 0) do={
@@ -44,34 +66,34 @@ if ( [:len $GMToffset] != 8 ) do={
     :if ($LogEntry = true) do={
         :set message [/log get $MessageCheck message]
 
-        # Log date jan/01/1970 00:00:00 (full and default)
-        :set MessageTime [/log get $MessageCheck time]
+        # Log date jan/20/1970 00:00:00 (full and default)
+        :set MessageDateTime [/log get $MessageCheck time]
 
         # Log date 00:00:00
-        :if ([:len $MessageTime] = 8) do={
+        :if ([:len $MessageDateTime] = 8) do={
             if ($CurrentHour >= $GMToffset) do={
                 #######################
                 # Current date format #
                 #######################
-                :set MessageTime ([:pick [/system clock get date] 0 11]." ".$MessageTime)
+                :set MessageDateTime ([:pick [/system clock get date] 0 11]." ".$MessageDateTime)
             } else={
                 #############################################
                 # Current date format (BUG with GMT+offset) #
                 #############################################
-                :set MessageTime ($YesterdayDate." ".$MessageTime)
+                :set MessageDateTime ($YesterdayDate." ".$MessageDateTime)
             }
         } else={
-            # Log date jan/01 00:00:00 for yesterday and today (from 00 to GMToffset hours)
-            :if ([:len $MessageTime] = 15 ) do={
-                :set MessageTime ([:pick $MessageTime 0 6]."/".[:pick [/system clock get date] 7 11]." ".[:pick $MessageTime 7 15])
+            # Log date jan/20 00:00:00 for yesterday and today (from 00 to GMToffset hours)
+            :if ([:len $MessageDateTime] = 15 ) do={
+                :set MessageDateTime ([:pick $MessageDateTime 0 6]."/".[:pick [/system clock get date] 7 11]." ".[:pick $MessageDateTime 7 15])
             }
         }
     
         :if ($NewLogs = true) do={
-            :set output ($output."%F0%9F%9A%A9 ".$MessageTime." ".$message."%0A%0A")
+            :set output ($output."%F0%9F%9A%A9 ".[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A".$message."%0A%0A")
         }
 
-        :if ($MessageTime = $LastAlertTime) do={
+        :if ($MessageDateTime = $LastAlertTime) do={
             :set NewLogs true
             :set output ""
         }
@@ -80,7 +102,7 @@ if ( [:len $GMToffset] != 8 ) do={
     :if ($count = ([:len $Messages]-1)) do={
         :if ($NewLogs = false) do={    
             :if ([:len $message] > 0) do={
-                :set output ($output."%F0%9F%9A%A9 ".$MessageTime." ".$message."%0A%0A")
+            :set output ($output."%F0%9F%9A%A9 ".[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A".$message."%0A%0A")
             }
         }
     }
@@ -93,7 +115,7 @@ if (($CurrentHour >= $GMToffset) && ($YesterdayDate != $CurrentDate)) do={
 }
 
 if ([:len $output] > 0) do={
-    /system scheduler set [find name="$SchedulerName"] comment=$MessageTime
+    /system scheduler set [find name="$SchedulerName"] comment=$MessageDateTime
     /tool fetch url="https://api.telegram.org/bot$TlgrmBotID/sendmessage?chat_id=$TlgrmChatIDlog&text=%E2%9D%97Alert%E2%9D%97%0A%0A$output" keep-result=no;
     /log info "$SchedulerName - New logs found, send to Telegram"
 }
