@@ -9,10 +9,13 @@
 :local CurrentHour [:pick [/system clock get time] 0 2]
 :local GMToffset [:totime [/system clock get gmt-offset ]]
 :local YesterdayDate [/system scheduler get [find name="YesterdayDate"] comment]
+# Topics for alert
 :local Messages [:toarray [/log find topics~"warning" || topics~"critical" || topics~"error" || topics~"firewall"]]
+# Patterns to ignore messages with text
 :local MessagesIgnore {"First ignore";"Second ignore"}
 :local LastAlertTime [/system scheduler get [find name="$SchedulerName"] comment]
-# jan/20/1970 00:00:00 to 00:00:00 20/01/1970, set false for default
+# Trigger for convertation in output messages jan/20/1970 00:00:00 to 00:00:00 20.01.1970
+# set false for default
 :local ConvertDateTime true
 :local MessageDateTime
 :local message
@@ -21,7 +24,7 @@
 :local count 0
 
 
-# Convert jan/20/1970 00:00:00 to 00:00:00 20.01.1970
+# Function for convert jan/20/1970 00:00:00 to 00:00:00 20.01.1970
 :local DefConvertTime do={
     if ($convertDT = true) do={
         :local arrayMonths {jan="01";feb="02";mar="03";apr="04";may="05";jun="06";jul="07";aug="08";sep="09";oct="10";nov="11";dec="12"}
@@ -42,6 +45,7 @@
 }
 
 if ( [:len $GMToffset] != 8 ) do={
+    # Convert negative GMToffset to readable (7101w3d03:28:16 to -03)
     :set $GMToffset [pick [:totime ([/system clock get gmt-offset ] - 4294967296)] 0 3]
 } else={
     :set $GMToffset [:pick [$GMToffset] 0 2]
@@ -68,14 +72,10 @@ if ( [:len $GMToffset] != 8 ) do={
         # Log date 00:00:00
         :if ([:len $MessageDateTime] = 8) do={
             if ($CurrentHour >= $GMToffset) do={
-                #######################
-                # Current date format #
-                #######################
+                # Current date format
                 :set MessageDateTime ([:pick [/system clock get date] 0 11]." ".$MessageDateTime)
             } else={
-                #############################################
-                # Current date format (BUG with GMT+offset) #
-                #############################################
+                # Yesterday date format (from 00 to GMToffset hours, BUG with GMT+offset)
                 :set MessageDateTime ($YesterdayDate." ".$MessageDateTime)
             }
         } else={
