@@ -1,5 +1,5 @@
 # Script for log's alert (to Telegram)
-# Written by Konkere - amorph@konkere.ru
+# Written by Konkere <amorph@konkere.ru>
 # Tested on MikroTik RouterOS 6.48.6 long-term (CHR and RouterBoard)
 
 :global TlgrmBotID
@@ -15,8 +15,12 @@
 :local MessagesIgnore {"First ignore";"Second ignore"}
 :local LastAlertTime [/system scheduler get [find name="$SchedulerName"] comment]
 # Trigger for convertation in output messages jan/20/1970 00:00:00 to 00:00:00 20.01.1970
-# set false for default
+# set false for default view
 :local ConvertDateTime true
+# Display name of device in output messsage
+# set true to show
+:local DeviceNameToOutput false
+:local DeviceName
 :local MessageDateTime
 :local message
 :local output
@@ -38,7 +42,6 @@
         :return $MessageDT
     }
 }
-
 
 :if ([:len $LastAlertTime] = 0) do={
     :set NewLogs true
@@ -86,7 +89,7 @@ if ( [:len $GMToffset] != 8 ) do={
         }
     
         :if ($NewLogs = true) do={
-            :set output ($output."%F0%9F%9A%A9 ".[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A".$message."%0A%0A")
+            :set output ($output.[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A%F0%9F%9A%A9".$message."%0A%0A")
         }
 
         :if ($MessageDateTime = $LastAlertTime) do={
@@ -98,7 +101,7 @@ if ( [:len $GMToffset] != 8 ) do={
     :if ($count = ([:len $Messages]-1)) do={
         :if ($NewLogs = false) do={    
             :if ([:len $message] > 0) do={
-            :set output ($output."%F0%9F%9A%A9 ".[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A".$message."%0A%0A")
+            :set output ($output.[$DefConvertTime MessageDT=$MessageDateTime convertDT=$ConvertDateTime]."%0A%F0%9F%9A%A9".$message."%0A%0A")
             }
         }
     }
@@ -110,8 +113,14 @@ if (($CurrentHour >= $GMToffset) && ($YesterdayDate != $CurrentDate)) do={
     /system scheduler set [find name="YesterdayDate"] comment=$CurrentDate
 }
 
+if ($DeviceNameToOutput = true) do={
+    :set DeviceName ("at %F0%9F%93%B6$DeviceName".[/system identity get name])
+}
+
 if ([:len $output] > 0) do={
+    #Final output message for send
+    :set output ("%E2%9D%97Alert%E2%9D%97".$DeviceName."%0A%0A".$output)
     /system scheduler set [find name="$SchedulerName"] comment=$MessageDateTime
-    /tool fetch url="https://api.telegram.org/bot$TlgrmBotID/sendmessage?chat_id=$TlgrmChatIDlog&text=%E2%9D%97Alert%E2%9D%97%0A%0A$output" keep-result=no;
+    /tool fetch url="https://api.telegram.org/bot$TlgrmBotID/sendmessage?chat_id=$TlgrmChatIDlog&text=$output" keep-result=no;
     /log info "$SchedulerName - New logs found, send to Telegram"
 }
