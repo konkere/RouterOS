@@ -114,7 +114,7 @@ if (($CurrentHour >= $GMToffset) && ($YesterdayDate != $CurrentDate)) do={
 }
 
 if ($DeviceNameToOutput = true) do={
-    :set DeviceName ("at %F0%9F%93%B6$DeviceName".[/system identity get name])
+    :set DeviceName ("at %F0%9F%93%B6".[/system identity get name])
 }
 
 if ([:len $output] > 0) do={
